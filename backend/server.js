@@ -51,6 +51,17 @@ app.post("/submit-response", async (req, res) => {
   }
 });
 
+// GET route to fetch all questionnaire responses
+app.get("/responses", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, name, email, answers, submitted_at FROM responses ORDER BY submitted_at DESC");
+    res.json({ success: true, responses: result.rows });
+  } catch (err) {
+    console.error("Error fetching responses:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
