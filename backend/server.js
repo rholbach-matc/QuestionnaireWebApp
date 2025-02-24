@@ -33,15 +33,15 @@ app.get("/test-db", async (req, res) => {
 // POST route to submit a questionnaire response
 app.post("/submit-response", async (req, res) => {
   try {
-    const { name, email, question, answer } = req.body;
+    const { name, email, answers } = req.body;
 
-    if (!name || !email || !question) {
-      return res.status(400).json({ success: false, message: "Name, email, and question are required." });
+    if (!name || !email || !answers || typeof answers !== "object") {
+      return res.status(400).json({ success: false, message: "Name, email, and answers are required." });
     }
 
     const result = await pool.query(
-      "INSERT INTO responses (name, email, question, answer) VALUES ($1, $2, $3, $4) RETURNING *",
-      [name, email, question, answer || null] // Defaults to NULL if empty
+      "INSERT INTO responses (name, email, answers) VALUES ($1, $2, $3) RETURNING *",
+      [name, email, answers]
     );
 
     res.status(201).json({ success: true, response: result.rows[0] });
@@ -50,7 +50,6 @@ app.post("/submit-response", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 
 // Start server
 app.listen(PORT, () => {
