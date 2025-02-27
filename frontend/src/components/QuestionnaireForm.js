@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import "./QuestionnaireForm.css"; // We'll create this CSS file later
+import "./QuestionnaireForm.css";
 
 const QuestionnaireForm = () => {
     const [formData, setFormData] = useState({
@@ -13,6 +13,10 @@ const QuestionnaireForm = () => {
     
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     const questions = [
         {
@@ -127,7 +131,6 @@ const QuestionnaireForm = () => {
         }
     ];
 
-    // Fixed the template literal syntax error
     const handleChange = (questionId, value) => {
         setFormData((prev) => ({
             ...prev,
@@ -138,11 +141,39 @@ const QuestionnaireForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+        setLoading(true);
         
+        // Validation - required fields
+        if (!formData.name.trim() || !formData.email.trim() || 
+            !formData.position.trim() || !formData.department.trim()) {
+            setError("All personal information fields are required.");
+            setLoading(false);
+            return;
+        }
+        
+        // Email validation
+        if (!emailRegex.test(formData.email)) {
+            setError("Please enter a valid email address.");
+            setLoading(false);
+            return;
+        }
+        
+        // Ensure at least one question is answered
+        const hasAnswers = Object.values(formData.answers).some(answer => 
+            answer && answer.trim() !== ""
+        );
+        
+        if (!hasAnswers) {
+            setError("Please answer at least one question.");
+            setLoading(false);
+            return;
+        }
+
         try {
             const response = await axios.post("http://localhost:5000/submit-response", formData);
             console.log("Success:", response.data);
             setSubmitted(true);
+            
             // Reset form after successful submission
             setFormData({
                 name: "",
@@ -154,6 +185,8 @@ const QuestionnaireForm = () => {
         } catch (error) {
             console.error("Error submitting form:", error);
             setError("Submission failed. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -187,7 +220,11 @@ const QuestionnaireForm = () => {
                             type="text"
                             placeholder="Your Name"
                             value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, name: e.target.value });
+                                setError("");
+                            }}
+                            className={formData.name === "" ? "" : formData.name.trim() === "" ? "input-error" : ""}
                             required
                         />
                     </div>
@@ -199,9 +236,18 @@ const QuestionnaireForm = () => {
                             type="email"
                             placeholder="Your Email"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, email: e.target.value });
+                                setError("");
+                            }}
+                            className={
+                                formData.email && !emailRegex.test(formData.email) ? "input-error" : ""
+                            }
                             required
                         />
+                        {formData.email && !emailRegex.test(formData.email) && 
+                            <p className="error-text">Invalid email format</p>
+                        }
                     </div>
                     
                     <div className="form-group">
@@ -211,7 +257,11 @@ const QuestionnaireForm = () => {
                             type="text"
                             placeholder="Your Position"
                             value={formData.position}
-                            onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, position: e.target.value });
+                                setError("");
+                            }}
+                            className={formData.position === "" ? "" : formData.position.trim() === "" ? "input-error" : ""}
                             required
                         />
                     </div>
@@ -223,7 +273,11 @@ const QuestionnaireForm = () => {
                             type="text"
                             placeholder="Your Department"
                             value={formData.department}
-                            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, department: e.target.value });
+                                setError("");
+                            }}
+                            className={formData.department === "" ? "" : formData.department.trim() === "" ? "input-error" : ""}
                             required
                         />
                     </div>
@@ -248,7 +302,9 @@ const QuestionnaireForm = () => {
                 ))}
                 
                 <div className="submit-section">
-                    <button type="submit" className="submit-button">Submit Questionnaire</button>
+                    <button type="submit" className="submit-button" disabled={loading}>
+                        {loading ? "Submitting..." : "Submit Questionnaire"}
+                    </button>
                 </div>
             </form>
         </div>
